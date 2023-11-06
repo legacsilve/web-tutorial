@@ -3,8 +3,6 @@
 from fastapi import FastAPI, Request, Response, HTTPException
 import json
 from fastapi.responses import RedirectResponse
-from pydantic import BaseModel
-from typing import Optional
 
 app = FastAPI()
 
@@ -221,56 +219,3 @@ async def delete_item_post(request: Request):
         )
     del ITEMS[item_id]
     return RedirectResponse(url="/items/", status_code=302)
-
-
-# モダンなアイテム一覧
-class ItemSchema(BaseModel):
-    id: int
-    name: str
-    price: int
-
-
-class ItemsSchema(BaseModel):
-    items: list[ItemSchema]
-
-
-@app.get("/api/items/", response_model=ItemsSchema, tags=["Modern"])
-async def read_items_api(
-    search: Optional[str] = None,
-):
-    ret = {"items": []}
-    for _, e in ITEMS.items():  # "_"はKey、"e"はValueを受け取っている。
-        if search and (search not in e["name"]):
-            continue
-        ret["items"].append(e)
-    return ret
-
-
-@app.get("/api/items/{item_id}", response_model=ItemSchema, tags=["Modern"])
-async def read_item_api(
-    item_id: int,
-):
-    if item_id not in ITEMS:
-        raise HTTPException(status_code=404, detail=f"ID={item_id} not found")
-    return ITEMS[item_id]
-
-
-@app.get("/api/items/create", response_model=ItemSchema, tags=["Modern"])
-async def create_item_api(
-    body: ItemSchema,
-):
-    if body.id in ITEMS:
-        raise HTTPException(status_code=400, detail=f"ID={body.id} Already Exists")
-    item = {"id": body.id, "name": body.name, "price": body.price}
-    ITEMS[body.id] = item
-    return item
-
-
-@app.delete("/api/items/{item_id}/", tags=["Modern"])
-async def delete_item_api(
-    item_id: int,
-)
-    if item_id not in ITEMS:
-        raise HTTPException(status_code=404, detail=f"ID={item_id} not found")
-    del ITEMS[item_id]
-    return {"id": item_id}
